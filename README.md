@@ -9,3 +9,17 @@ I created this game as a personal learning tool. I found that typing out conjuga
 
 - Load your `tsv` file (see the [sample.tsv](sample.tsv))
 - Click "Start Game"
+
+## Demo
+
+<p align="center">
+  <img src="demo/file.png" width="65%"  title="load tsv file">
+</p>
+
+<p align="center">
+  <img src="demo/type.png" width="65%"  title="type the answer">
+</p>
+
+<p align="center">
+  <img src="demo/result.png" width="65%"  title="result">
+</p>
