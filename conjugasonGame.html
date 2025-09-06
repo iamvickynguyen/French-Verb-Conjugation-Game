@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>French Verb Conjugation Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+        }
+        #game-area {
+            margin: 20px 0;
+        }
+        input {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 10px;
+        }
+        #timer {
+            font-size: 20px;
+            font-weight: bold;
+            color: red;
+        }
+        #score {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        #mistakes {
+            text-align: left;
+            margin-top: 20px;
+        }
+        .hidden {
+            display: none;
+        }
+        #file-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #ccc;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>French Verb Conjugation Game</h1>
+    
+    <div id="start-screen">
+        <div id="file-section">
+            <p>First, load your verbs.tsv file:</p>
+            <input type="file" id="file-input" accept=".tsv,.txt" onchange="handleFileSelect(event)">
+            <div id="file-status">No file loaded</div>
+        </div>
+        <p>Conjugate French verbs correctly within 1 minute!</p>
+        <button id="start-btn" onclick="startGame()" disabled>Start Game</button>
+    </div>
+
+    <div id="game-area" class="hidden">
+        <div id="timer">Time: 60s</div>
+        <div id="score">Score: 0</div>
+        <div id="question"></div>
+        <input type="text" id="answer" placeholder="Type conjugation here" onkeypress="handleKeyPress(event)">
+        <div id="feedback"></div>
+    </div>
+
+    <div id="end-screen" class="hidden">
+        <h2>Game Over!</h2>
+        <div id="final-score"></div>
+        <div id="mistakes">
+            <h3>Mistakes:</h3>
+            <ul id="mistake-list"></ul>
+        </div>
+        <button onclick="resetGame()">Play Again</button>
+    </div>
+
+    <script>
+        let verbs = [];
+        let currentVerb = {};
+        let score = 0;
+        let timeLeft = 60;
+        let timer = null;
+        let mistakes = [];
+        let gameActive = false;
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    parseVerbData(content);
+                    document.getElementById('file-status').textContent = `Loaded ${verbs.length} verb conjugations`;
+                    document.getElementById('start-btn').disabled = verbs.length === 0;
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function parseVerbData(verbData) {
+            verbs = [];
+            const lines = verbData.trim().split('\n');
+            const headers = lines[0].split('\t');
+            
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split('\t');
+                if (values.length >= 3) {
+                    verbs.push({
+                        pronom: values[0],
+                        conjugated: values[1],
+                        infinitive: values[2],
+                        form: values[3]
+                    });
+                }
+            }
+        }
+
+        function getRandomVerb() {
+            return verbs[Math.floor(Math.random() * verbs.length)];
+        }
+
+        function displayQuestion() {
+            currentVerb = getRandomVerb();
+            document.getElementById('question').innerHTML = 
+						`<h2>${currentVerb.pronom} _____ (${currentVerb.infinitive}, ${currentVerb.form})</h2>`;
+            document.getElementById('answer').value = '';
+            document.getElementById('feedback').innerHTML = '';
+        }
+
+        function checkAnswer() {
+            const userAnswer = document.getElementById('answer').value.trim().toLowerCase();
+            const correctAnswer = currentVerb.conjugated.toLowerCase();
+            
+            if (userAnswer === correctAnswer) {
+                score++;
+                document.getElementById('score').textContent = `Score: ${score}`;
+                document.getElementById('feedback').innerHTML = '<p style="color: green;">Correct!</p>';
+                setTimeout(() => {
+                    if (gameActive) {
+                        displayQuestion();
+                    }
+                }, 500);
+            } else {
+                document.getElementById('feedback').innerHTML = '<p style="color: red;">Try again!</p>';
+							const mistake = `${currentVerb.pronom} (${currentVerb.infinitive}, ${currentVerb.form}) → ${currentVerb.conjugated} (you wrote: ${userAnswer})`;
+                if (!mistakes.includes(mistake)) {
+                    mistakes.push(mistake);
+                }
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && gameActive) {
+                checkAnswer();
+            }
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function startGame() {
+            if (verbs.length === 0) {
+                alert('Please load a TSV file first!');
+                return;
+            }
+            
+            gameActive = true;
+            score = 0;
+            timeLeft = 60;
+            mistakes = [];
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-area').classList.remove('hidden');
+            document.getElementById('end-screen').classList.add('hidden');
+            
+            displayQuestion();
+            startTimer();
+            document.getElementById('answer').focus();
+        }
+
+        function endGame() {
+            gameActive = false;
+            clearInterval(timer);
+            
+            document.getElementById('game-area').classList.add('hidden');
+            document.getElementById('end-screen').classList.remove('hidden');
+            
+            document.getElementById('final-score').textContent = `Final Score: ${score} points`;
+            
+            const mistakeList = document.getElementById('mistake-list');
+            mistakeList.innerHTML = '';
+            
+            if (mistakes.length === 0) {
+                mistakeList.innerHTML = '<li>No mistakes! Perfect game!</li>';
+            } else {
+                mistakes.forEach(mistake => {
+                    const li = document.createElement('li');
+                    li.textContent = mistake;
+                    mistakeList.appendChild(li);
+                });
+            }
+        }
+
+        function resetGame() {
+            document.getElementById('end-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
